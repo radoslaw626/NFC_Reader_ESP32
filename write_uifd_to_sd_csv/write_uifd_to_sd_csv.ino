@@ -25,13 +25,7 @@ String currentDate;
 
 File myFile;
 const String FILE_NAME = "test.txt";
-#define DATE_STRING_SHORT           3
-
-// Month names in flash
-const char monthNames_P[] PROGMEM = "JanFebMarAprMayJunJulAugSepOctNovDec";
-
-// Day of the week names in flash
-const char dayNames_P[] PROGMEM= "SunMonTueWedThuFriSat";
+#define DATE_STRING_SHORT   3
 
 void setup() {
   // Open serial communications and wait for port to open:
@@ -123,11 +117,9 @@ String readCurrentDateTime()
     if(mon<10){
       monStr="0"+String(mon);
     }
-
     
     currentDate=hourStr+":"+minStr+":"+secStr+"-"+mdayStr+"-"+monStr+"-"+String(year);
     return currentDate;
-
 }
 
 int readNUID()
@@ -156,16 +148,14 @@ int readNUID()
     uint8_t LB = (rfid.uid.uidByte [i] & 0x0F);
     uint8_t MB = (rfid.uid.uidByte [i] & 0xF0) >> 4;
 
-    //NUID[i*3] = ' ';
-    //NUID[i*3+1] = (MB>=10) ? (MB-10+'A') : MB+'0';
-    //NUID[i*3+2] = (LB>=10) ? (LB-10+'A') : LB+'0';
-
     NUID[i*3] = (MB>=10) ? (MB-10+'A') : MB+'0';
     NUID[i*3+1] = (LB>=10) ? (LB-10+'A') : LB+'0';
     NUID[i*3+2] = ' ';
   }
+  
   Serial.print(F("The NUID tag is:"));
   Serial.println(NUID);
+  
   // Halt PICC
   rfid.PICC_HaltA();
 
