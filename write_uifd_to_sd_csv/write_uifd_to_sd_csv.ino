@@ -26,8 +26,7 @@ const uint8_t LED_BLUE = 27;
 ErriezDS1302 rtc = ErriezDS1302(DS1302_CLK_PIN, DS1302_IO_PIN, DS1302_CE_PIN);
 MFRC522 rfid(MFRC522_SS_PIN, MFRC522_RST_PIN); // Instance of the class
 MFRC522::MIFARE_Key key;
-// String NUID;
-char NUID[25];
+String NUID;
 const String FILE_NAME = "db.csv";
 File myFile;
 
@@ -144,7 +143,7 @@ int readNUID()
     
   digitalWrite(LED_BLUE, LOW);
   
-  Serial.print(F("PICC type: "));
+  Serial.print(F("\r\nPICC type: "));
   MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
   Serial.println(rfid.PICC_GetTypeName(piccType));
 
@@ -156,17 +155,16 @@ int readNUID()
   //    return 0;
   //  }
 
+  NUID = "";
+  
   for (byte i = 0; i < rfid.uid.size; i++) {
-    uint8_t LB = (rfid.uid.uidByte [i] & 0x0F);
-    uint8_t MB = (rfid.uid.uidByte [i] & 0xF0) >> 4;
-
-    NUID[i * 3] = (MB >= 10) ? (MB - 10 + 'A') : MB + '0';
-    NUID[i * 3 + 1] = (LB >= 10) ? (LB - 10 + 'A') : LB + '0';
-    NUID[i * 3 + 2] = ' ';
+    NUID.concat(String(rfid.uid.uidByte[i] < 0x10 ? " 0" : " "));
+    NUID.concat(String(rfid.uid.uidByte[i], HEX));
   }
-
-  Serial.print(F("The NUID tag is:"));
-  Serial.println(NUID);
+  
+  NUID.remove(0, 1);
+  NUID.toUpperCase(); 
+  Serial.println("The NUID tag is: " + NUID);
 
   // Halt PICC
   rfid.PICC_HaltA();
