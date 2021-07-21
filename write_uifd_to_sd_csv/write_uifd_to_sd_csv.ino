@@ -24,8 +24,7 @@ const uint8_t LED_GREEN = 26;
 const uint8_t LED_BLUE = 27;
 
 ErriezDS1302 rtc = ErriezDS1302(DS1302_CLK_PIN, DS1302_IO_PIN, DS1302_CE_PIN);
-MFRC522 rfid(MFRC522_SS_PIN, MFRC522_RST_PIN); // Instance of the class
-MFRC522::MIFARE_Key key;
+MFRC522 rfid(MFRC522_SS_PIN, MFRC522_RST_PIN);
 String NUID;
 const String FILE_NAME = "db.csv";
 File myFile;
@@ -37,13 +36,6 @@ void setup() {
     ; // wait for serial port to connect. Needed for native USB port only
   }
   
-  // RC522 init
-  SPI.begin(); // Init SPI bus
-  rfid.PCD_Init(); // Init MFRC522
-  for (byte i = 0; i < 6; i++) {
-    key.keyByte[i] = 0xFF;
-  }
-
   // Diodes init
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
@@ -51,10 +43,10 @@ void setup() {
   digitalWrite(LED_RED, HIGH);
   digitalWrite(LED_GREEN, HIGH);
   digitalWrite(LED_BLUE, HIGH);
-
-  Serial.println(F("This code scan the MIFARE Classsic NUID."));
-  Serial.print(F("Using the following key: "));
-  printHex(key.keyByte, MFRC522::MF_KEY_SIZE);
+  
+  // MFRC522 init
+  SPI.begin(); // Init SPI bus
+  rfid.PCD_Init(); // Init MFRC522
 
   // SD card init
   Serial.print("\r\nInitializing SD card...");
@@ -75,6 +67,7 @@ void setup() {
     delay(3000);
   }
   
+  // Synchronise RTC with PC date and time
   DateTime date = DateTime(F(__DATE__), F(__TIME__));
   if (!rtc.setDateTime(date.hour(), date.minute(), date.second(), date.day(), date.month(), date.year(), 0)) {
     Serial.println(F("Set date/time failed"));
@@ -208,7 +201,7 @@ void saveNUID()
   // re-open the file for reading:
   myFile = SD.open("/" + FILE_NAME);
   if (myFile) {
-    Serial.println(FILE_NAME + ":");
+    Serial.println("\r\nFile " + FILE_NAME + ":");
 
     // read from the file until there's nothing else in it:
     while (myFile.available()) {
@@ -219,25 +212,5 @@ void saveNUID()
   } else {
     // if the file didn't open, print an error:
     Serial.println("Error opening " + FILE_NAME);
-  }
-}
-
-/**
-   Helper routine to dump a byte array as hex values to Serial.
-*/
-void printHex(byte *buffer, byte bufferSize) {
-  for (byte i = 0; i < bufferSize; i++) {
-    Serial.print(buffer[i] < 0x10 ? " 0" : " ");
-    Serial.print(buffer[i], HEX);
-  }
-}
-
-/**
-   Helper routine to dump a byte array as dec values to Serial.
-*/
-void printDec(byte *buffer, byte bufferSize) {
-  for (byte i = 0; i < bufferSize; i++) {
-    Serial.print(buffer[i] < 0x10 ? " 0" : " ");
-    Serial.print(buffer[i], DEC);
   }
 }
