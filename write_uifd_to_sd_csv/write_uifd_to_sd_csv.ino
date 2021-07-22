@@ -35,7 +35,7 @@ void setup() {
   while (!Serial) {
     ; // wait for serial port to connect. Needed for native USB port only
   }
-  
+
   // Diodes init
   pinMode(LED_RED, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
@@ -43,7 +43,7 @@ void setup() {
   digitalWrite(LED_RED, HIGH);
   digitalWrite(LED_GREEN, HIGH);
   digitalWrite(LED_BLUE, HIGH);
-  
+
   // MFRC522 init
   SPI.begin(); // Init SPI bus
   rfid.PCD_Init(); // Init MFRC522
@@ -66,6 +66,9 @@ void setup() {
     Serial.println(F("RTC not found"));
     delay(3000);
   }
+
+  //#################### Bledy: ##########################
+  // Opoznienie miedzy pobraniem czasu a wgraniem na rtc
   
   // Synchronise RTC with PC date and time
   DateTime date = DateTime(F(__DATE__), F(__TIME__));
@@ -133,9 +136,9 @@ int readNUID()
   // Verify if the NUID has been readed
   if ( ! rfid.PICC_ReadCardSerial())
     return 0;
-    
+
   digitalWrite(LED_BLUE, LOW);
-  
+
   Serial.print(F("\r\nPICC type: "));
   MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
   Serial.println(rfid.PICC_GetTypeName(piccType));
@@ -149,14 +152,14 @@ int readNUID()
   //  }
 
   NUID = "";
-  
+
   for (byte i = 0; i < rfid.uid.size; i++) {
     NUID.concat(String(rfid.uid.uidByte[i] < 0x10 ? " 0" : " "));
     NUID.concat(String(rfid.uid.uidByte[i], HEX));
   }
-  
+
   NUID.remove(0, 1);
-  NUID.toUpperCase(); 
+  NUID.toUpperCase();
   Serial.println("The NUID tag is: " + NUID);
 
   // Halt PICC
@@ -168,7 +171,9 @@ int readNUID()
   return 1;
 }
 
+//#################### Bledy: ##########################
 // Po wpieciu karty pierwszy odczyt ma puste NUID.
+// Po wypieciu karty nastepny zapis bedzie mial zmienna file i "zapisuje" na karte ktora nie jest wpieta
 void saveNUID()
 {
   // open the file, note that only one file can be open at a time,
@@ -177,23 +182,23 @@ void saveNUID()
 
   // if the file opened okay, write to it:
   if (myFile) {
-    Serial.print("Writing to " + FILE_NAME + "...");
-    String date = readCurrentDateTime();
-    String csvData = String(NUID) + ", " + date + ";";
-    myFile.println(csvData);
+    Serial.println("Writing to " + FILE_NAME + "...");
+    String csvData = String(NUID) + "," + readCurrentDateTime() + ";";
+    byte bytesWritten = myFile.println(csvData);
+    Serial.println("Bytes written: " + String(bytesWritten));
 
     // close the file:
     myFile.close();
     digitalWrite(LED_BLUE, HIGH);
     digitalWrite(LED_GREEN, LOW);
     delay(1000);
-    digitalWrite(LED_GREEN, HIGH); 
-    Serial.println("\r\nSaved, file closed.");
+    digitalWrite(LED_GREEN, HIGH);
+    Serial.println("Saved, file closed.");
   } else {
     // if the file didn't open, print an error:
     Serial.println("Error opening " + FILE_NAME);
     digitalWrite(LED_BLUE, HIGH);
-    digitalWrite(LED_RED, LOW); 
+    digitalWrite(LED_RED, LOW);
     delay(1000);
     digitalWrite(LED_RED, HIGH);
   }
@@ -207,6 +212,7 @@ void saveNUID()
     while (myFile.available()) {
       Serial.write(myFile.read());
     }
+    
     // close the file:
     myFile.close();
   } else {
