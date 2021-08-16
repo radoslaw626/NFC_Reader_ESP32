@@ -28,6 +28,8 @@ MFRC522 rfid(MFRC522_SS_PIN, MFRC522_RST_PIN);
 String NUID;
 const String FILE_NAME = "db.csv";
 File myFile;
+HardwareSerial unit1(1);
+uint32_t chipId;
 
 void setup() {
   // Open serial communications and wait for port to open:
@@ -69,17 +71,51 @@ void setup() {
 
   //#################### Bledy: ##########################
   // Opoznienie miedzy pobraniem czasu a wgraniem na rtc
-  
+
   // Synchronise RTC with PC date and time
   DateTime date = DateTime(F(__DATE__), F(__TIME__));
   if (!rtc.setDateTime(date.hour(), date.minute(), date.second(), date.day(), date.month(), date.year(), 0)) {
     Serial.println(F("Set date/time failed"));
   }
+
+  // Connection with second ESP
+  //(baud, data protocol, txd, rxd)
+  unit1.begin(115200, SERIAL_8N1, 17, 16);
+
+  readUniqueId();
 }
 
 void loop() {
   if (readNUID()) {
     saveNUID();
+    sendData();
+  }
+}
+
+void readUniqueId() {
+  for (int i = 0; i < 17; i = i + 8) {
+    chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
+  }
+
+  Serial.print("Chip ID: ");
+  Serial.println(chipId);
+}
+
+void sendData() {
+  // open the file for reading:
+  myFile = SD.open("/" + FILE_NAME);
+  if (myFile) {
+    // read from the file until there's nothing else in it
+    while (myFile.available()) {
+      unit1.write(myFile.read());
+    }
+
+    myFile.close();
+    Serial.println("Data sent");
+  }
+  else {
+    // if the file didn't open, print an error:
+    Serial.println("Error opening " + FILE_NAME);
   }
 }
 
@@ -158,6 +194,7 @@ int readNUID()
     NUID.concat(String(rfid.uid.uidByte[i], HEX));
   }
 
+  // remove empty whitespace
   NUID.remove(0, 1);
   NUID.toUpperCase();
   Serial.println("The NUID tag is: " + NUID);
@@ -183,7 +220,7 @@ void saveNUID()
   // if the file opened okay, write to it:
   if (myFile) {
     Serial.println("Writing to " + FILE_NAME + "...");
-    String csvData = String(NUID) + "," + readCurrentDateTime() + ";";
+    String csvData = String(chipId) + "," + String(NUID) + "," + readCurrentDateTime() + ";";
     byte bytesWritten = myFile.println(csvData);
     Serial.println("Bytes written: " + String(bytesWritten));
 
@@ -201,22 +238,5 @@ void saveNUID()
     digitalWrite(LED_RED, LOW);
     delay(1000);
     digitalWrite(LED_RED, HIGH);
-  }
-
-  // re-open the file for reading:
-  myFile = SD.open("/" + FILE_NAME);
-  if (myFile) {
-    Serial.println("\r\nFile " + FILE_NAME + ":");
-
-    // read from the file until there's nothing else in it:
-    while (myFile.available()) {
-      Serial.write(myFile.read());
-    }
-    
-    // close the file:
-    myFile.close();
-  } else {
-    // if the file didn't open, print an error:
-    Serial.println("Error opening " + FILE_NAME);
   }
 }
