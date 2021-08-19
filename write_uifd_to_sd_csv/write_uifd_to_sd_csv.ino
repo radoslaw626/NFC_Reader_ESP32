@@ -30,6 +30,7 @@ const String FILE_NAME = "db.csv";
 File myFile;
 HardwareSerial unit1(1);
 uint32_t chipId;
+bool newData = false;
 
 void setup() {
   // Open serial communications and wait for port to open:
@@ -86,9 +87,17 @@ void setup() {
 }
 
 void loop() {
+  // send new data if devices are connected
+  bool isConnected = true;
+  if (isConnected) {
+    if (newData) {
+      sendData();
+    }
+    return;
+  }
+
   if (readNUID()) {
     saveNUID();
-    sendData();
   }
 }
 
@@ -112,6 +121,10 @@ void sendData() {
 
     myFile.close();
     Serial.println("Data sent");
+
+    SD.remove("/" + FILE_NAME);
+    newData = false;
+    Serial.println("File deleted");
   }
   else {
     // if the file didn't open, print an error:
@@ -222,6 +235,7 @@ void saveNUID()
     Serial.println("Writing to " + FILE_NAME + "...");
     String csvData = String(chipId) + "," + String(NUID) + "," + readCurrentDateTime() + ";";
     byte bytesWritten = myFile.println(csvData);
+    newData = true;
     Serial.println("Bytes written: " + String(bytesWritten));
 
     // close the file:
